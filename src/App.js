@@ -1,25 +1,37 @@
 import logo from './logo.svg';
 import './App.css';
 
+import { Switch, Route } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import socketIOClient from "socket.io-client";
+
+import Landing from './components/Landing';
+import Room from './components/room/Room';
+
+const ENDPOINT = "http://127.0.0.1:3001";
+
+const AppContext = React.createContext();
+
 function App() {
+
+  const initialState = {
+    username: 'test',
+    room: 'JS'
+  };
+
+  const [state, setState] = React.useState(initialState);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <AppContext.Provider value={{
+      state, setState
+    }}>
+      <Switch>
+        <Route exact path="/" component={Landing} />
+        <Route path="/room" component={Room} />
+      </Switch>
+    </AppContext.Provider>
   );
 }
 
 export default App;
+export { AppContext };
