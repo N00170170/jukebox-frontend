@@ -5,7 +5,8 @@ import React, { useState, useEffect, useContext } from "react";
 import { AppContext } from '../../App';
 import { SocketContext, socket } from '../../context/socket';
 
-const ENDPOINT = "http://127.0.0.1:3001";
+// const ENDPOINT = "http://127.0.0.1:3001";
+const ENDPOINT = "http://192.168.1.13:3001";
 
 const initialState = {
     users: [],
@@ -18,7 +19,7 @@ const Room = () => {
 
     const [users, setUsers] = React.useState([]);
     const [queue, setQueue] = React.useState([]);
-    const [playing, setPlaying] = React.useState(true);
+    const [playing, setPlaying] = React.useState(false);
 
     const appContext = React.useContext(AppContext);
 
@@ -67,8 +68,8 @@ const Room = () => {
             socket.emit('createRoom', username);
         }
 
-        //Get room and users
-        socket.on('roomUsers', ({ room, users }) => {
+        //Get room and users - occurs when someone joins/leaves
+        socket.on('roomUsers', ({ roomObj, room, users, playing }) => {
 
             appContext.setState({
                 ...appContext.state,
@@ -81,6 +82,11 @@ const Room = () => {
             // });
 
             setUsers(users);
+
+            console.log('roomObj:',roomObj);
+            
+            setPlaying(roomObj.playing);
+            setQueue(roomObj.queue);
 
             console.log('users', users);
         })
