@@ -8,6 +8,8 @@ import socketIOClient from "socket.io-client";
 import Landing from './components/Landing';
 import Room from './components/room/Room';
 
+require('dotenv').config()
+
 const ENDPOINT = "http://127.0.0.1:3001";
 
 const AppContext = React.createContext();
