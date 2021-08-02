@@ -11,7 +11,8 @@ const ENDPOINT = "http://192.168.1.13:3001";
 const initialState = {
     users: [],
     queue: [],
-    device_id: null
+    device_id: null,
+    searchResults: []
 };
 
 const reducer = (state, action) => {
@@ -55,6 +56,8 @@ const Room = () => {
     const room = appContext.state.room;
 
     let track = React.useRef();
+    let trackSearch = React.useRef();
+
 
     // const access_token = 'BQDb4stQgWdymxnLBTf__cUjmVtl64rRXe1RkoxjxG_VI_P3XixlcQa8nSH690zO5igdhtuMrHQDFI06fydVthltchfX6iQ6TbehMK2f-f2LUgAQfFZXkRe9-OxF76-PKTsdro-EW7GeqLfd5SIATfYtZcEJ1jpPI0pl3AtBkXIUzGZn9yCJzYnpBDMHmN8zBVUSijMGNTrdZdz8Eg';
 
@@ -119,7 +122,7 @@ const Room = () => {
             setPlaying(playingState);
             //if they are the host - send API to play/pause
             let path = null;
-            if(playingState){
+            if (playingState) {
                 path = 'play';
             } else {
                 path = 'pause';
@@ -140,10 +143,10 @@ const Room = () => {
             //check if first item in new queue is not the one that's currently playing
             if (stateRef.current.queue[0] != newQueue[0] && newQueue.length > 0) {
                 playTrack(newQueue[0]);
-                console.log('play:',newQueue[0])
+                console.log('play:', newQueue[0])
             }
 
-            if(stateRef.current.queue.length == 0){
+            if (stateRef.current.queue.length == 0) {
                 socket.emit('pauseToggle', playing);
             }
 
@@ -220,9 +223,13 @@ const Room = () => {
         if (existingScript && callback) callback();
     };
 
-    const queueAdd = (e) => {
-        socket.emit('queueAdd', track.current.value);
-        track.current.value = '';
+    const queueAdd = (uri) => {
+        if (typeof uri === 'object') {
+            socket.emit('queueAdd', track.current.value);
+            track.current.value = '';
+        } else {
+            socket.emit('queueAdd', uri);
+        }
     }
 
     const pauseToggle = () => {
@@ -267,6 +274,31 @@ const Room = () => {
 
     }
 
+    // Search for track
+    const searchForTrack = () => {
+        if (trackSearch.current.value.length > 0) {
+            fetch('https://api.spotify.com/v1/search?q=' + trackSearch.current.value.replace(/\s+/g, '+') + '&type=track&market=IE&limit=5', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    setState({
+                        ...state,
+                        searchResults: data.tracks.items
+                    });
+                });
+        } else {
+            setState({
+                ...state,
+                searchResults: []
+            });
+        }
+    }
+
     return (
         <SocketContext.Provider value={socket}>
             <div className="App">
@@ -290,13 +322,20 @@ const Room = () => {
                         :
                         stateRef.current.queue.map((track, index) => (
                             (index === 0 ?
-                                <p style={{ color: "#70dc70", fontWeight: "bold" }}>{track}</p>
+                                <p key={index} style={{ color: "#70dc70", fontWeight: "bold" }}>{track}</p>
                                 :
-                                <p>{track}</p>
+                                <p key={index}>{track}</p>
                             )
                         ))
                     }
                     <input name="track" type="text" ref={track}></input><button onClick={queueAdd}>Add</button>
+                    <input name="tracksearch" type="text" ref={trackSearch} onChange={searchForTrack}></input>
+                    <ul class="search-results">
+                        {state.searchResults.length > 0 &&
+                            state.searchResults.map((track, index) => (
+                                <li key={index} class="search-results-track" onClick={() => queueAdd(track.uri)}><img src={track.album.images[2].url} />{track.artists[0].name + ' - ' + track.name}</li>
+                            ))}
+                    </ul>
                 </header>
                 <script src="https://sdk.scdn.co/spotify-player.js"></script>
             </div>
