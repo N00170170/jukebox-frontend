@@ -129,7 +129,6 @@ const Room = () => {
             }
             fetch(`https://api.spotify.com/v1/me/player/${path}?device_id=` + stateRef.current.device_id, {
                 method: 'PUT',
-                // body: JSON.stringify({ uris: [spotify_uri] }),
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
@@ -141,7 +140,7 @@ const Room = () => {
         socket.on('queueUpdate', newQueue => {
 
             //check if first item in new queue is not the one that's currently playing
-            if (stateRef.current.queue[0] != newQueue[0] && newQueue.length > 0) {
+            if (stateRef.current.queue[0]?.uri != newQueue[0] && newQueue.length > 0) {
                 playTrack(newQueue[0]);
                 console.log('play:', newQueue[0])
             }
@@ -150,10 +149,33 @@ const Room = () => {
                 socket.emit('pauseToggle', playing);
             }
 
-            setState(state => ({
-                ...state,
-                queue: newQueue
-            }))
+            // Get the track metadata
+            fetch(`https://api.spotify.com/v1/tracks?ids=` + newQueue.map(track => {return track.replace('spotify:track:', '')}).join(), { // removes spotify:track: to give just the ID
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    //set queue state to be an array of objects containing 'uri' and 'name'
+                    let queueArray = [];
+                    newQueue.map((track,index) => {
+                        let newTrack = {
+                            uri: track,
+                            name: data.tracks[index].artists[0].name + ' - ' + data.tracks[index].name
+                        }
+                        queueArray.push(newTrack)
+                    })
+                    return queueArray;
+                })
+                .then((queueArray) => {
+                    setState(state => ({
+                        ...state,
+                        queue: queueArray
+                    }))
+                })
 
             // dispatch({
             //     type: "SET_QUEUE",
@@ -317,14 +339,14 @@ const Room = () => {
                     </p>
                     <p>State: {playing ? 'Playing' : 'Paused'}</p>
                     <h2>Queue<span id="pause" onClick={pauseToggle}>⏯︎</span> <span id="skip" onClick={nextTrack}>⏭︎</span></h2>
-                    {stateRef.current.queue.length === 0 ?
+                    {state.queue.length === 0 ?
                         <p>There are no tracks in the queue</p>
                         :
                         stateRef.current.queue.map((track, index) => (
                             (index === 0 ?
-                                <p key={index} style={{ color: "#70dc70", fontWeight: "bold" }}>{track}</p>
+                                <p key={index} style={{ color: "#70dc70", fontWeight: "bold" }}>{track.name}</p>
                                 :
-                                <p key={index}>{track}</p>
+                                <p key={index}>{track.name}</p>
                             )
                         ))
                     }
