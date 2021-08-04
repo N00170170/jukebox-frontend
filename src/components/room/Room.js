@@ -145,37 +145,50 @@ const Room = () => {
                 console.log('play:', newQueue[0])
             }
 
+            // on first queueUpdate the local queue is empty so it will toggle playing from false to true
             if (stateRef.current.queue.length == 0) {
                 socket.emit('pauseToggle', playing);
             }
 
-            // Get the track metadata
-            fetch(`https://api.spotify.com/v1/tracks?ids=` + newQueue.map(track => {return track.replace('spotify:track:', '')}).join(), { // removes spotify:track: to give just the ID
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
-                },
-            })
-                .then(response => response.json())
-                .then(data => {
-                    //set queue state to be an array of objects containing 'uri' and 'name'
-                    let queueArray = [];
-                    newQueue.map((track,index) => {
-                        let newTrack = {
-                            uri: track,
-                            name: data.tracks[index].artists[0].name + ' - ' + data.tracks[index].name
-                        }
-                        queueArray.push(newTrack)
+            // if new queue is empty, tell server to send back playing 'pause' by sending playing 'true' (regardless of current playing state)
+            if (newQueue.length == 0) {
+                socket.emit('pauseToggle', 'true');
+            }
+
+            // Get the track metadata if newQueue contains tracks
+            if (newQueue.length > 0) {
+                fetch(`https://api.spotify.com/v1/tracks?ids=` + newQueue.map(track => { return track.replace('spotify:track:', '') }).join(), { // removes spotify:track: to give just the ID
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
+                    },
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        //set queue state to be an array of objects containing 'uri' and 'name'
+                        let queueArray = [];
+                        newQueue.map((track, index) => {
+                            let newTrack = {
+                                uri: track,
+                                name: data.tracks[index].artists[0].name + ' - ' + data.tracks[index].name
+                            }
+                            queueArray.push(newTrack)
+                        })
+                        return queueArray;
                     })
-                    return queueArray;
-                })
-                .then((queueArray) => {
-                    setState(state => ({
-                        ...state,
-                        queue: queueArray
-                    }))
-                })
+                    .then((queueArray) => {
+                        setState(state => ({
+                            ...state,
+                            queue: queueArray
+                        }))
+                    })
+            } else { // if newQueue is empty then set local queue state to empty array
+                setState(state => ({
+                    ...state,
+                    queue: []
+                }))
+            }
 
             // dispatch({
             //     type: "SET_QUEUE",
@@ -209,7 +222,15 @@ const Room = () => {
             spotifyPlayer.addListener('playback_error', ({ message }) => { console.error(message); });
 
             // Playback status updates
-            spotifyPlayer.addListener('player_state_changed', state => { console.log(state); });
+            spotifyPlayer.addListener('player_state_changed', state => {
+                //check if song has ended (position will be at 0 and player will be paused)
+
+                //check if the uri is the same as the track currently playing AND it is paused AND at position 0
+                if (stateRef.current.queue[0]?.uri == state.track_window.current_track.uri && state.position == 0 && state.paused == true && state.loading == false) {
+                    socket.emit('nextTrack');
+                }
+                console.log('Spotify player state:', state);
+            });
 
             // Ready
             spotifyPlayer.addListener('ready', ({ device_id }) => {
@@ -255,12 +276,15 @@ const Room = () => {
     }
 
     const pauseToggle = () => {
-        socket.emit('pauseToggle', playing);
-        // togglePlayingState();
+        if (state.queue.length > 0) {
+            socket.emit('pauseToggle', playing);
+        }
     }
 
     const nextTrack = () => {
-        socket.emit('nextTrack');
+        if (state.queue.length > 0) {
+            socket.emit('nextTrack');
+        }
     }
 
     const playTrack = (spotifyUri) => {
