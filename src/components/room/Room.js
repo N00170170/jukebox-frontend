@@ -59,6 +59,8 @@ const Room = () => {
     let track = React.useRef();
     let trackSearch = React.useRef();
 
+    const access_token = sessionStorage.getItem("spotify_access_token");
+
 
     // const access_token = 'BQDb4stQgWdymxnLBTf__cUjmVtl64rRXe1RkoxjxG_VI_P3XixlcQa8nSH690zO5igdhtuMrHQDFI06fydVthltchfX6iQ6TbehMK2f-f2LUgAQfFZXkRe9-OxF76-PKTsdro-EW7GeqLfd5SIATfYtZcEJ1jpPI0pl3AtBkXIUzGZn9yCJzYnpBDMHmN8zBVUSijMGNTrdZdz8Eg';
 
@@ -132,7 +134,7 @@ const Room = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
+                    'Authorization': `Bearer ${access_token}`
                 },
             });
         });
@@ -162,7 +164,7 @@ const Room = () => {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
+                        'Authorization': `Bearer ${access_token}`
                     },
                 })
                     .then(response => response.json())
@@ -213,7 +215,7 @@ const Room = () => {
             let { Player } = window.Spotify;
             const spotifyPlayer = new Player({
                 name: 'Jukebox: ' + room,
-                getOAuthToken: cb => { cb(process.env.REACT_APP_SPOTIFY_TOKEN); }
+                getOAuthToken: cb => { cb(access_token); }
             });
 
             // Error handling
@@ -304,7 +306,7 @@ const Room = () => {
                     body: JSON.stringify({ uris: [spotify_uri] }),
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
+                        'Authorization': `Bearer ${access_token}`
                     },
                 });
             };
@@ -328,15 +330,17 @@ const Room = () => {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.REACT_APP_SPOTIFY_TOKEN}`
+                    'Authorization': `Bearer ${access_token}`
                 },
             })
                 .then(response => response.json())
                 .then(data => {
-                    setState({
-                        ...state,
-                        searchResults: data.tracks.items
-                    });
+                    if(data.tracks){
+                        setState({
+                            ...state,
+                            searchResults: data.tracks.items
+                        });
+                    }
                 });
         } else {
             setState({

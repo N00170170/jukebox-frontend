@@ -11,6 +11,8 @@ const NicknameModal = (props) => {
 
     let history = useHistory();
 
+    const accessToken = React.useRef();
+
     const handleChange = (e) => {
         const target = e.target;
         const field = target.name;
@@ -24,11 +26,17 @@ const NicknameModal = (props) => {
     const joinRoom = () => {
         //check if room exists - rest API?
         // if yes
+        if(accessToken.current.value){
+            sessionStorage.setItem("spotify_access_token", accessToken.current.value)
+        }
         history.push("/room");
         // if no, show user error. prompt them to create a new room instead?
     }
 
     const createRoom = () => {
+        if(accessToken.current.value){
+            sessionStorage.setItem("spotify_access_token", accessToken.current.value)
+        }
         appContext.setState({
             ...appContext.state,
             room: null
@@ -54,8 +62,10 @@ const NicknameModal = (props) => {
                     <p>Please enter your nickname</p>
                     <Form.Control name="username" type="text" value={appContext.state.username} placeholder="NICKNAME" className="text-center" onChange={handleChange} />
                     <br />
-                    <p>Please authorise your Spotify account</p>
-                    <Button variant="success">Authorise Spotify</Button>
+                    <p>Please authorise your Spotify account <a href="https://developer.spotify.com/documentation/web-playback-sdk/quick-start/" target="blank" onClick={() => {window.open('https://developer.spotify.com/documentation/web-playback-sdk/quick-start/','popup','width=600,height=600'); return false;}}>here</a></p>
+                    {/* <Button variant="success">Authorise Spotify</Button> */}
+                    <Form.Control name="access_token" type="textarea" placeholder="Access Token" ref={accessToken} className="text-center" />
+
                     <br />
                     <br />
                     <div className="d-grid gap-2">
