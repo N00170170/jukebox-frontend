@@ -2,6 +2,7 @@ import logo from '../../logo.svg';
 import '../../App.css';
 
 import React, { useState, useEffect, useContext, useRef } from "react";
+import { Button } from 'react-bootstrap';
 import { AppContext } from '../../App';
 import { SocketContext, socket } from '../../context/socket';
 
@@ -374,7 +375,7 @@ const Room = () => {
                             )
                         ))
                     }
-                    <input name="track" type="text" ref={track}></input><button onClick={queueAdd}>Add</button>
+                    <input name="track" type="text" ref={track}></input><Button variant="primary" onClick={queueAdd}>Add</Button>
                     <input name="tracksearch" type="text" ref={trackSearch} onChange={searchForTrack}></input>
                     <ul class="search-results">
                         {state.searchResults.length > 0 &&
