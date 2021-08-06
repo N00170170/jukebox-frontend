@@ -6,16 +6,19 @@ import { AppContext } from '../App';
 import NicknameModal from './NicknameModal';
 
 const Landing = () => {
+  const appContext = React.useContext(AppContext);
   const [show, setShow] = useState(false);
-  const [hosting, setHosting] = useState(false);
+  // const [hosting, setHosting] = useState(false);
 
   const handleClose = () => setShow(false);
   const handleShow = (hosting) => {
-    setHosting(hosting);
+    appContext.setState({
+      ...appContext.state,
+      hosting: hosting
+    });
+    // setHosting(hosting);
     setShow(true);
   }
-
-  const appContext = React.useContext(AppContext);
 
   const handleChange = (e) => {
     const target = e.target;
@@ -50,7 +53,7 @@ const Landing = () => {
           </div>
         </Form>
       </Col>
-      <NicknameModal hosting={hosting} show={show} handleClose={handleClose}/>
+      <NicknameModal show={show} handleClose={handleClose}/>
     </Container>
   );
 };

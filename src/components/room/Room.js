@@ -92,15 +92,20 @@ const Room = () => {
             });
 
             setState({
-                ...state,
+                ...stateRef.current,
                 users: users
             });
 
-            setState(state => ({
-                ...state,
+            // need to put in new logic for setting the queue...
+
+            setState({
+                ...stateRef.current,
                 users: users,
-                queue: roomObj.queue
-            }))
+                // queue: roomObj.queue
+            })
+
+            // Get metadata for the tracks in the queue
+            getQueueMetadata(roomObj.queue);
 
             // dispatch({
             //     type: "SET_USERS",
@@ -114,86 +119,55 @@ const Room = () => {
 
             // setUsers(users);
 
-            console.log('roomObj:', roomObj);
-
             setPlaying(roomObj.playing);
             // setQueue(roomObj.queue);
-
-            console.log('users', users);
         })
 
 
         socket.on('pauseMsg', playingState => {
             setPlaying(playingState);
             //if they are the host - send API to play/pause
-            let path = null;
-            if (playingState) {
-                path = 'play';
-            } else {
-                path = 'pause';
+            if (appContext.state.hosting) {
+                let path = null;
+                if (playingState) {
+                    path = 'play';
+                } else {
+                    path = 'pause';
+                }
+                fetch(`https://api.spotify.com/v1/me/player/${path}?device_id=` + stateRef.current.device_id, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${access_token}`
+                    },
+                });
             }
-            fetch(`https://api.spotify.com/v1/me/player/${path}?device_id=` + stateRef.current.device_id, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${access_token}`
-                },
-            });
         });
 
         // Track added/removed from queue (message from server)
         socket.on('queueUpdate', newQueue => {
 
-            //check if first item in new queue is not the one that's currently playing
-            if (stateRef.current.queue[0]?.uri != newQueue[0] && newQueue.length > 0) {
-                playTrack(newQueue[0]);
-                console.log('play:', newQueue[0])
+            // playing logic for room - only run by the host
+            if (appContext.state.hosting) {
+                //check if first item in new queue is not the one that's currently playing
+                if (stateRef.current.queue[0]?.uri != newQueue[0] && newQueue.length > 0) {
+                    playTrack(newQueue[0]);
+                    console.log('play:', newQueue[0])
+                }
+
+                // on first queueUpdate the local queue is empty so it will toggle playing from false to true
+                if (stateRef.current.queue.length == 0) {
+                    socket.emit('pauseToggle', playing);
+                }
+
+                // if new queue is empty, tell server to send back playing 'pause' by sending playing 'true' (regardless of current playing state)
+                if (newQueue.length == 0) {
+                    socket.emit('pauseToggle', 'true');
+                }
             }
 
-            // on first queueUpdate the local queue is empty so it will toggle playing from false to true
-            if (stateRef.current.queue.length == 0) {
-                socket.emit('pauseToggle', playing);
-            }
-
-            // if new queue is empty, tell server to send back playing 'pause' by sending playing 'true' (regardless of current playing state)
-            if (newQueue.length == 0) {
-                socket.emit('pauseToggle', 'true');
-            }
-
-            // Get the track metadata if newQueue contains tracks
-            if (newQueue.length > 0) {
-                fetch(`https://api.spotify.com/v1/tracks?ids=` + newQueue.map(track => { return track.replace('spotify:track:', '') }).join(), { // removes spotify:track: to give just the ID
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${access_token}`
-                    },
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        //set queue state to be an array of objects containing 'uri' and 'name'
-                        let queueArray = [];
-                        newQueue.map((track, index) => {
-                            let newTrack = {
-                                uri: track,
-                                name: data.tracks[index].artists[0].name + ' - ' + data.tracks[index].name
-                            }
-                            queueArray.push(newTrack)
-                        })
-                        return queueArray;
-                    })
-                    .then((queueArray) => {
-                        setState(state => ({
-                            ...state,
-                            queue: queueArray
-                        }))
-                    })
-            } else { // if newQueue is empty then set local queue state to empty array
-                setState(state => ({
-                    ...state,
-                    queue: []
-                }))
-            }
+            // Get metadata for the tracks in the queue
+            getQueueMetadata(newQueue);
 
             // dispatch({
             //     type: "SET_QUEUE",
@@ -208,7 +182,10 @@ const Room = () => {
 
     //on load init Spotify player
     useEffect(() => {
-        loadSpotifyScript(spotifySDKCallback)
+        //only load if hosting
+        if (appContext.state.hosting) {
+            loadSpotifyScript(spotifySDKCallback)
+        }
     });
 
     const spotifySDKCallback = () => {
@@ -352,6 +329,43 @@ const Room = () => {
         }
     }
 
+    const getQueueMetadata = (newQueue) => {
+        // Get the track metadata if newQueue contains tracks
+        if (newQueue.length > 0) {
+            fetch(`https://api.spotify.com/v1/tracks?ids=` + newQueue.map(track => { return track.replace('spotify:track:', '') }).join(), { // removes spotify:track: to give just the ID
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${access_token}`
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    //set queue state to be an array of objects containing 'uri' and 'name'
+                    let queueArray = [];
+                    newQueue.map((track, index) => {
+                        let newTrack = {
+                            uri: track,
+                            name: data.tracks[index].artists[0].name + ' - ' + data.tracks[index].name
+                        }
+                        queueArray.push(newTrack)
+                    })
+                    return queueArray;
+                })
+                .then((queueArray) => {
+                    setState(state => ({
+                        ...state,
+                        queue: queueArray
+                    }))
+                })
+        } else { // if newQueue is empty then set local queue state to empty array
+            setState(state => ({
+                ...state,
+                queue: []
+            }))
+        }
+    }
+
     return (
         <SocketContext.Provider value={socket}>
             <Container fluid className='bg'>
@@ -462,9 +476,15 @@ const Room = () => {
                     </Col>
                 </Row>
                 <Navbar fixed="bottom" expand="lg" variant="light" bg="light" className="justify-content-center text-center m-auto align-items-center">
-                    <FontAwesomeIcon icon={playing ? faPauseCircle : faPlayCircle} size="3x" style={{ color: "black", marginRight: "20px", cursor: "pointer" }} onClick={pauseToggle} />
-                    <FontAwesomeIcon icon={faStepForward} size="lg" style={{ color: "black", cursor: "pointer" }} onClick={nextTrack} />
-                    {/* <ProgressBar now="90" label="2:46" /> */}
+                    {appContext.state.hosting ?
+                        <>
+                            <FontAwesomeIcon disabled icon={playing ? faPauseCircle : faPlayCircle} size="3x" style={{ color: "black", marginRight: "20px", cursor: "pointer" }} onClick={pauseToggle} />
+                            <FontAwesomeIcon icon={faStepForward} size="lg" style={{ color: "black", cursor: "pointer" }} onClick={nextTrack} />
+                            {/* <ProgressBar now="90" label="2:46" /> */}
+                        </>
+                        :
+                        <span></span>
+                    }
                 </Navbar>
                 <script src="https://sdk.scdn.co/spotify-player.js"></script>
             </Container>

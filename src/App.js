@@ -18,7 +18,8 @@ function App() {
 
   const initialState = {
     username: 'test',
-    room: 'JS'
+    room: 'JS',
+    hosting: false
   };
 
   const [state, setState] = React.useState(initialState);

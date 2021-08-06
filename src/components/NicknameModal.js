@@ -49,7 +49,7 @@ const NicknameModal = (props) => {
             <Modal show={props.show} onHide={props.handleClose} className="justify-content-center text-center m-auto align-items-center">
                 <Modal.Header closeButton>
                     <Modal.Title>
-                        {props.hosting ?
+                        {appContext.state.hosting ?
                             <>Create Room</>
                             :
                             <>
@@ -69,7 +69,7 @@ const NicknameModal = (props) => {
                     <br />
                     <br />
                     <div className="d-grid gap-2">
-                        {props.hosting ?
+                        {appContext.state.hosting ?
                             <Button variant="primary" size="lg" onClick={createRoom}>Create Room</Button>
                             :
                             <Button variant="primary" size="lg" onClick={joinRoom}>Join Room</Button>
