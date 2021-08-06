@@ -2,9 +2,11 @@ import logo from '../../logo.svg';
 import '../../App.css';
 
 import React, { useState, useEffect, useContext, useRef } from "react";
-import { Button } from 'react-bootstrap';
+import { Container, Row, Col, Form, ListGroup, Navbar, Button, ProgressBar } from 'react-bootstrap';
 import { AppContext } from '../../App';
 import { SocketContext, socket } from '../../context/socket';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlayCircle, faPauseCircle, faStepForward } from '@fortawesome/fontawesome-free-solid'
 
 // const ENDPOINT = "http://127.0.0.1:3001";
 const ENDPOINT = "http://192.168.1.13:3001";
@@ -335,7 +337,7 @@ const Room = () => {
             })
                 .then(response => response.json())
                 .then(data => {
-                    if(data.tracks){
+                    if (data.tracks) {
                         setState({
                             ...state,
                             searchResults: data.tracks.items
@@ -352,44 +354,120 @@ const Room = () => {
 
     return (
         <SocketContext.Provider value={socket}>
-            <div className="App">
-                <header className="App-header">
-                    <p>Room: {room}</p>
-                    <p>Users: {''}
-                        {state.users !== null &&
-                            state.users.map((user, index) => (
-                                (index == 0 ?
-                                    <span style={{ color: "red" }}>{user.username}{' '}</span>
-                                    :
-                                    <>{user.username}{' '}</>
-                                )
-                            ))
-                        }
-                    </p>
-                    <p>State: {playing ? 'Playing' : 'Paused'}</p>
-                    <h2>Queue<span id="pause" onClick={pauseToggle}>⏯︎</span> <span id="skip" onClick={nextTrack}>⏭︎</span></h2>
-                    {state.queue.length === 0 ?
-                        <p>There are no tracks in the queue</p>
-                        :
-                        stateRef.current.queue.map((track, index) => (
-                            (index === 0 ?
-                                <p key={index} style={{ color: "#70dc70", fontWeight: "bold" }}>{track.name}</p>
+            <Container fluid className='bg'>
+                <Row>
+                    <Col md={4} className="min-vh-100" style={{ borderRight: "1px solid #fff" }}>
+                        <Row>
+                            <Col md={6}>
+                                <Form.Label style={{ fontWeight: "bold" }}><h3>Room</h3></Form.Label>
+                                <Form.Control size="lg" type="text" placeholder="ROOM CODE" value={room} readOnly />
+                                <span style={{ color: "#70dc70", fontSize: "14px" }}>share this code with your friends!</span>
+                                <br /><br /><Button variant="danger">Leave</Button>
+                            </Col>
+                            <Col md={6}>
+                                <Form.Label style={{ fontWeight: "bold" }}><h3>Users</h3></Form.Label>
+
+                                {state.users !== null &&
+                                    // <Form.Select multiple readOnly aria-label="Default select example">
+                                    //     {state.users.map((user, index) => (
+                                    //         (index == 0 ?
+                                    //             <option style={{ color: "red" }}>{user.username}{' '}</option>
+                                    //             :
+                                    //             <option>{user.username}{' '}</option>
+                                    //         )
+                                    //     ))}
+                                    // </Form.Select>
+
+                                    <ListGroup variant="flush">
+                                        {state.users.map((user, index) => (
+                                            (index == 0 ?
+                                                <ListGroup.Item ><span style={{ color: "red", fontWeight: "bold" }}>{user.username}{' '}</span><span style={{ color: "gray", float: "right" }}>(host)</span></ListGroup.Item>
+                                                :
+                                                <ListGroup.Item><>{user.username}{' '}</></ListGroup.Item>
+                                            )
+                                        ))}
+                                    </ListGroup>
+                                }
+                            </Col>
+                        </Row>
+                        <br />
+                        <Row>
+                            <h3>Queue <span className="text-muted">{playing ? '(playing)' : '(paused)'}</span></h3>
+                            {state.queue.length === 0 ?
+                                <p>There are no tracks in the queue</p>
                                 :
-                                <p key={index}>{track.name}</p>
-                            )
-                        ))
-                    }
-                    <input name="track" type="text" ref={track}></input><Button variant="primary" onClick={queueAdd}>Add</Button>
-                    <input name="tracksearch" type="text" ref={trackSearch} onChange={searchForTrack}></input>
-                    <ul class="search-results">
-                        {state.searchResults.length > 0 &&
-                            state.searchResults.map((track, index) => (
-                                <li key={index} class="search-results-track" onClick={() => queueAdd(track.uri)}><img src={track.album.images[2].url} />{track.artists[0].name + ' - ' + track.name}</li>
-                            ))}
-                    </ul>
-                </header>
+                                stateRef.current.queue.map((track, index) => (
+                                    (index === 0 ?
+                                        <p key={index} style={{ color: "#70dc70", fontWeight: "bold" }}>{track.name}</p>
+                                        :
+                                        <p key={index}>{track.name}</p>
+                                    )
+                                ))
+                            }
+                        </Row>
+
+                    </Col>
+                    <Col md={8}>
+                        <Row >
+                            <Row className="mt-4 mb-4">
+                                <Col>
+                                    <Form.Control name="tracksearch" type="search" placeholder="Search" ref={trackSearch} onChange={searchForTrack} />
+                                </Col>
+                                <Col style={{ float: "right" }}>
+                                    <div key={`inline-checkbox`} className="mb-3" style={{ float: "right" }}>
+                                        <Form.Check
+                                            inline
+                                            checked="checked"
+                                            label="Spotify"
+                                            name="group1"
+                                            type="checkbox"
+                                            id={`inline-checkbox-1`}
+                                        />
+                                        <Form.Check
+                                            inline
+                                            disabled
+                                            label="SoundCloud"
+                                            name="group1"
+                                            type="checkbox"
+                                            id={`inline-checkbox-2`}
+                                        />
+                                        <Form.Check
+                                            inline
+                                            disabled
+                                            label="YouTube"
+                                            type="checkbox"
+                                            id={`inline-checkbox-3`}
+                                        />
+                                    </div>
+                                </Col>
+                                {/* <hr style={{ color: "white", backgroundColor: "white" }} /> */}
+                                {/* <hr style={{ backgroundColor: "white", opacity: "1" }}/> */}
+                            </Row>
+                            <Row>
+                                <ul className="search-results">
+                                    {state.searchResults.length > 0 &&
+                                        <ListGroup>
+                                            {
+                                                state.searchResults.map((track, index) => (
+                                                    <ListGroup.Item key={index} className="search-results-track" onClick={() => queueAdd(track.uri)}>
+                                                        <img src={track.album.images[2].url} style={{ marginRight: "12px" }} />
+                                                        <span className="ml-3 pl-3 pr-3 mr-3">{track.artists[0].name + ' - ' + track.name}</span>
+                                                    </ListGroup.Item>
+                                                ))}
+                                        </ListGroup>
+                                    }
+                                </ul>
+                            </Row>
+                        </Row>
+                    </Col>
+                </Row>
+                <Navbar fixed="bottom" expand="lg" variant="light" bg="light" className="justify-content-center text-center m-auto align-items-center">
+                    <FontAwesomeIcon icon={playing ? faPauseCircle : faPlayCircle} size="3x" style={{ color: "black", marginRight: "20px", cursor: "pointer" }} onClick={pauseToggle} />
+                    <FontAwesomeIcon icon={faStepForward} size="lg" style={{ color: "black", cursor: "pointer" }} onClick={nextTrack} />
+                    {/* <ProgressBar now="90" label="2:46" /> */}
+                </Navbar>
                 <script src="https://sdk.scdn.co/spotify-player.js"></script>
-            </div>
+            </Container>
         </SocketContext.Provider>
     );
 }
