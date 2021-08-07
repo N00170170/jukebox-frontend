@@ -64,15 +64,15 @@ const NicknameModal = (props) => {
                     <br />
                     <p>Please authorise your Spotify account <a href="https://developer.spotify.com/documentation/web-playback-sdk/quick-start/" target="blank" onClick={() => {window.open('https://developer.spotify.com/documentation/web-playback-sdk/quick-start/','popup','width=600,height=600'); return false;}}>here</a></p>
                     {/* <Button variant="success">Authorise Spotify</Button> */}
-                    <Form.Control name="access_token" as="textarea" placeholder="Access Token" ref={accessToken} className="text-center" />
+                    <Form.Control name="access_token" as="textarea" placeholder="Access Token" ref={accessToken} className="text-center"  onChange={handleChange}/>
 
                     <br />
                     <br />
                     <div className="d-grid gap-2">
                         {appContext.state.hosting ?
-                            <Button variant="primary" size="lg" onClick={createRoom}>Create Room</Button>
+                            <Button variant="primary" size="lg" onClick={createRoom} disabled={!appContext.state.username || !appContext.state.access_token }>Create Room</Button>
                             :
-                            <Button variant="primary" size="lg" onClick={joinRoom}>Join Room</Button>
+                            <Button variant="primary" size="lg" onClick={joinRoom} disabled={!appContext.state.username || !appContext.state.access_token }>Join Room</Button>
                         }
                     </div>
                 </Modal.Body>

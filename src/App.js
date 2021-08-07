@@ -14,9 +14,10 @@ const AppContext = React.createContext();
 function App() {
 
   const initialState = {
-    username: 'test',
-    room: 'JS',
-    hosting: false
+    username: '',
+    room: '',
+    hosting: false,
+    access_token: ''
   };
 
   const [state, setState] = React.useState(initialState);
