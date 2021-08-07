@@ -6,7 +6,7 @@ import { Container, Row, Col, Form, ListGroup, Navbar, Button, ProgressBar } fro
 import { AppContext } from '../../App';
 import { SocketContext, socket } from '../../context/socket';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faPauseCircle, faStepForward } from '@fortawesome/fontawesome-free-solid'
+import { faPlayCircle, faPauseCircle, faStepForward, faSearch } from '@fortawesome/fontawesome-free-solid'
 
 // const ENDPOINT = "http://127.0.0.1:3001";
 const ENDPOINT = "http://192.168.1.13:3001";
@@ -52,6 +52,8 @@ const Room = () => {
     // const [users, setUsers] = React.useState([]);
     // const [queue, setQueue] = React.useState([]);
     const [playing, setPlaying] = React.useState(false);
+    const playingRef = useRef();
+    playingRef.current = playing;
 
     const appContext = React.useContext(AppContext);
 
@@ -63,13 +65,8 @@ const Room = () => {
 
     const access_token = sessionStorage.getItem("spotify_access_token");
 
-
-    // const access_token = 'BQDb4stQgWdymxnLBTf__cUjmVtl64rRXe1RkoxjxG_VI_P3XixlcQa8nSH690zO5igdhtuMrHQDFI06fydVthltchfX6iQ6TbehMK2f-f2LUgAQfFZXkRe9-OxF76-PKTsdro-EW7GeqLfd5SIATfYtZcEJ1jpPI0pl3AtBkXIUzGZn9yCJzYnpBDMHmN8zBVUSijMGNTrdZdz8Eg';
-
     //on app load, make socketio connection
     useEffect(() => {
-
-
         //emit join room message with hardcoded values
         if (room) {
             socket.emit('joinRoom', { username, room });
@@ -96,12 +93,9 @@ const Room = () => {
                 users: users
             });
 
-            // need to put in new logic for setting the queue...
-
             setState({
                 ...stateRef.current,
                 users: users,
-                // queue: roomObj.queue
             })
 
             // Get metadata for the tracks in the queue
@@ -130,8 +124,10 @@ const Room = () => {
             if (appContext.state.hosting) {
                 let path = null;
                 if (playingState) {
+                    console.log("playing from server is true, we will play spotify")
                     path = 'play';
                 } else {
+                    console.log("playing from server is false, we will pause spotify")
                     path = 'pause';
                 }
                 fetch(`https://api.spotify.com/v1/me/player/${path}?device_id=` + stateRef.current.device_id, {
@@ -152,21 +148,27 @@ const Room = () => {
                 //check if first item in new queue is not the one that's currently playing
                 if (stateRef.current.queue[0]?.uri != newQueue[0] && newQueue.length > 0) {
                     playTrack(newQueue[0]);
-                    console.log('play:', newQueue[0])
                 }
 
-                // on first queueUpdate the local queue is empty so it will toggle playing from false to true
-                if (stateRef.current.queue.length == 0) {
-                    socket.emit('pauseToggle', playing);
+                if (newQueue.length > 0) {
+                    if (stateRef.current.queue.length == 0) { //if queue is empty and a new track is added, start playing
+                        socket.emit('pauseToggle', playingRef.current); //send back play
+                        console.log("queue is empty and a new track is added");
+                    } else if (!playingRef.current && stateRef.current.queue.length > newQueue.length) { //if paused and next track is clicked
+                        socket.emit('pauseToggle', false); //send back play
+                        console.log("paused and next track is clicked");
+                    } else if (!playingRef.current && stateRef.current.queue.length < newQueue.length) { //if paused and new track added
+                        socket.emit('pauseToggle', true); //send back pause (i.e. keep it paused)
+                        console.log("paused and new track added")
+                    }
                 }
-
-                // if new queue is empty, tell server to send back playing 'pause' by sending playing 'true' (regardless of current playing state)
+                // if new queue is empty, server should send back playing false
                 if (newQueue.length == 0) {
-                    socket.emit('pauseToggle', 'true');
+                    socket.emit('pauseToggle', true);
                 }
             }
 
-            // Get metadata for the tracks in the queue
+            // Get metadata for the tracks in the newQueue, and set state
             getQueueMetadata(newQueue);
 
             // dispatch({
@@ -210,6 +212,7 @@ const Room = () => {
                 //check if the uri is the same as the track currently playing AND it is paused AND at position 0
                 if (stateRef.current.queue[0]?.uri == state.track_window.current_track.uri && state.position == 0 && state.paused == true && state.loading == false) {
                     socket.emit('nextTrack');
+                    console.log("track ended");
                 }
                 console.log('Spotify player state:', state);
             });
@@ -424,7 +427,8 @@ const Room = () => {
                     <Col md={8}>
                         <Row >
                             <Row className="mt-4 mb-4">
-                                <Col>
+                                <Col >
+                                    {/* <FontAwesomeIcon icon={faSearch} style={{ color: "white" }} /> */}
                                     <Form.Control name="tracksearch" type="search" placeholder="Search" ref={trackSearch} onChange={searchForTrack} />
                                 </Col>
                                 <Col style={{ float: "right" }}>

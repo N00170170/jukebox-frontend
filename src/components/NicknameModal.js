@@ -64,7 +64,7 @@ const NicknameModal = (props) => {
                     <br />
                     <p>Please authorise your Spotify account <a href="https://developer.spotify.com/documentation/web-playback-sdk/quick-start/" target="blank" onClick={() => {window.open('https://developer.spotify.com/documentation/web-playback-sdk/quick-start/','popup','width=600,height=600'); return false;}}>here</a></p>
                     {/* <Button variant="success">Authorise Spotify</Button> */}
-                    <Form.Control name="access_token" type="textarea" placeholder="Access Token" ref={accessToken} className="text-center" />
+                    <Form.Control name="access_token" as="textarea" placeholder="Access Token" ref={accessToken} className="text-center" />
 
                     <br />
                     <br />
