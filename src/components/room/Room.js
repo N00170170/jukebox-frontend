@@ -8,9 +8,6 @@ import { SocketContext, socket } from '../../context/socket';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlayCircle, faPauseCircle, faStepForward, faSearch } from '@fortawesome/fontawesome-free-solid'
 
-// const ENDPOINT = "http://127.0.0.1:3001";
-const ENDPOINT = "http://192.168.1.13:3001";
-
 const initialState = {
     users: [],
     queue: [],
@@ -214,7 +211,13 @@ const Room = () => {
                     socket.emit('nextTrack');
                     console.log("track ended");
                 }
+
                 console.log('Spotify player state:', state);
+
+                // if(state.paused == playingRef.current){ //if Spotify is paused but app is playing
+                //     socket.emit('pauseToggle', playingRef.current);
+                //     console.log('Spotify is paused but app is playing')
+                // }
             });
 
             // Ready
