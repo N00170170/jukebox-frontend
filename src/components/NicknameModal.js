@@ -4,14 +4,16 @@ import React, { useState, useEffect } from "react";
 import { Modal, Form, Button, Card } from 'react-bootstrap';
 import { Redirect, useHistory } from 'react-router-dom';
 import { AppContext } from '../App';
+import base64url from "base64url";
+import crypto from "crypto-browserify";
 
 const NicknameModal = (props) => {
 
     const appContext = React.useContext(AppContext);
 
     let history = useHistory();
-
-    const accessToken = React.useRef();
+    
+    const [authToken, setAuthToken] = React.useState(null);
 
     const handleChange = (e) => {
         const target = e.target;
@@ -23,25 +25,66 @@ const NicknameModal = (props) => {
         });
     }
 
-    const joinRoom = () => {
-        //check if room exists - rest API?
-        // if yes
-        if(accessToken.current.value){
-            sessionStorage.setItem("spotify_access_token", accessToken.current.value)
-        }
-        history.push("/room");
-        // if no, show user error. prompt them to create a new room instead?
-    }
+    const authSpotify = () => {
+        // generate code verifier
+        const code_verifier = base64url(crypto.pseudoRandomBytes(32)); //creates random 43 char long string
 
-    const createRoom = () => {
-        if(accessToken.current.value){
-            sessionStorage.setItem("spotify_access_token", accessToken.current.value)
-        }
         appContext.setState({
             ...appContext.state,
-            room: null
+            code_verifier: code_verifier
         });
-        history.push("/room")
+
+        // generate code challenge
+        const code_challenge = base64url(crypto.createHash("sha256").update(code_verifier).digest()); // hashes code_verifier, then encodes the hash to base64
+
+        // construct authorisation url
+        const auth_url = "https://accounts.spotify.com/authorize?response_type=code&client_id=" + process.env.REACT_APP_SPOTIFY_CLIENT_ID + "&redirect_uri=" + encodeURIComponent(process.env.REACT_APP_SPOTIFY_CALLBACK) + (appContext.state.hosting ? "&scope=streaming%20user-read-email%20user-read-private" : "") + "&code_challenge=" + code_challenge + "&code_challenge_method=S256"
+
+        window.open(auth_url, 'popup', 'width=500,height=800')
+
+    }
+
+    //listen for change in storage - when auth code gets added to storage by SpotifyCallback
+    window.addEventListener("storage", () => {
+        if (localStorage.getItem("spotify_auth_code")) {
+            setAuthToken(localStorage.getItem("spotify_auth_code"));
+        }
+    });
+
+    //exchanges auth code for an access token and then joins/creates room
+    const joinRoom = () => {
+        if (localStorage.getItem("spotify_auth_code")) {
+
+            //exchange auth code for access token from Spotify
+            const body = {
+                client_id: process.env.REACT_APP_SPOTIFY_CLIENT_ID,
+                grant_type: 'authorization_code',
+                code: localStorage.getItem("spotify_auth_code"),
+                redirect_uri: process.env.REACT_APP_SPOTIFY_CALLBACK,
+                code_verifier: appContext.state.code_verifier
+            }
+
+            fetch('https://accounts.spotify.com/api/token', {
+                method: 'POST',
+                body: new URLSearchParams(Object.entries(body)).toString(), //convert to x-www-form-urlencoded
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    sessionStorage.setItem("spotify_access_token", data.access_token)
+                    sessionStorage.setItem("spotify_exchange", JSON.stringify(data))
+                    if (appContext.state.hosting) {
+                        appContext.setState({
+                            ...appContext.state,
+                            room: null
+                        });
+                    }
+                    history.push("/room")
+                    localStorage.clear();
+                });
+        }
     }
 
     return (
@@ -62,18 +105,13 @@ const NicknameModal = (props) => {
                     <p>Please enter your nickname</p>
                     <Form.Control name="username" type="text" value={appContext.state.username} placeholder="NICKNAME" className="text-center" onChange={handleChange} />
                     <br />
-                    <p>Please authorise your Spotify account <a href="https://developer.spotify.com/documentation/web-playback-sdk/quick-start/" target="blank" onClick={() => {window.open('https://developer.spotify.com/documentation/web-playback-sdk/quick-start/','popup','width=600,height=600'); return false;}}>here</a></p>
-                    {/* <Button variant="success">Authorise Spotify</Button> */}
-                    <Form.Control name="access_token" as="textarea" placeholder="Access Token" ref={accessToken} className="text-center"  onChange={handleChange}/>
-
+                    <p>Please authorise your Spotify account</p>
+                    {appContext.state.hosting && <><span className="text-muted" style={{ fontSize: "13px" }}>Premium Spotify is required to host a room</span><br /><br /></>}
+                    <Button variant="success" onClick={authSpotify}>Authorise Spotify</Button><br></br>
                     <br />
                     <br />
                     <div className="d-grid gap-2">
-                        {appContext.state.hosting ?
-                            <Button variant="primary" size="lg" onClick={createRoom} disabled={!appContext.state.username || !appContext.state.access_token }>Create Room</Button>
-                            :
-                            <Button variant="primary" size="lg" onClick={joinRoom} disabled={!appContext.state.username || !appContext.state.access_token }>Join Room</Button>
-                        }
+                        <Button variant="primary" size="lg" onClick={joinRoom} disabled={!appContext.state.username || !authToken}>{appContext.state.hosting ? 'Create' : 'Join'} Room</Button>
                     </div>
                 </Modal.Body>
             </Modal>

@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 
 import Landing from './components/Landing';
 import Room from './components/room/Room';
+import SpotifyCallback from './components/SpotifyCallback';
 
 require('dotenv').config()
 
@@ -17,7 +18,8 @@ function App() {
     username: '',
     room: '',
     hosting: false,
-    access_token: ''
+    access_token: '',
+    code_verifier: ''
   };
 
   const [state, setState] = React.useState(initialState);
@@ -29,6 +31,7 @@ function App() {
       <Switch>
         <Route exact path="/" component={Landing} />
         <Route path="/room" component={Room} />
+        <Route path="/callback" component={SpotifyCallback} />
       </Switch>
     </AppContext.Provider>
   );
