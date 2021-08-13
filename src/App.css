@@ -38,12 +38,39 @@
 }
 
 .bg {
-  background-color: #282c34;
+  background-color: #1e1f21;
   min-height: 100vh;
   /* display: flex; 
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin); */
-  color: white;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif !important;
+  color: #f6f6f6 !important;
+}
+
+.modal-content {
+  background-color: #282c34 !important;
+}
+
+.text-muted {
+  color: #8f8f8f !important;
+}
+
+.light-text {
+  color: #f6f6f6 !important;
+}
+
+.queue-list {
+  overflow-y: scroll !important;
+  max-height: 400px !important;
+}
+@media (max-width: 767.98px) {
+  .queue-list {
+     overflow-y: scroll !important;
+     max-height: 200px !important;
+   }
 }

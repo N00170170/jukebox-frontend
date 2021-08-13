@@ -1,12 +1,12 @@
-import logo from '../../logo.svg';
 import '../../App.css';
 
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { Container, Row, Col, Form, ListGroup, Navbar, Button, ProgressBar } from 'react-bootstrap';
+import { useHistory } from 'react-router-dom';
 import { AppContext } from '../../App';
 import { SocketContext, socket } from '../../context/socket';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlayCircle, faPauseCircle, faStepForward, faSearch } from '@fortawesome/fontawesome-free-solid'
+import { faPlayCircle, faPauseCircle, faStepForward, faSearch, faPlusCircle } from '@fortawesome/fontawesome-free-solid'
 
 const initialState = {
     users: [],
@@ -59,6 +59,8 @@ const Room = () => {
 
     let track = React.useRef();
     let trackSearch = React.useRef();
+
+    let history = useHistory();
 
     const access_token = sessionStorage.getItem("spotify_access_token");
 
@@ -376,15 +378,19 @@ const Room = () => {
         <SocketContext.Provider value={socket}>
             <Container fluid className='bg'>
                 <Row>
-                    <Col md={4} className="min-vh-100" style={{ borderRight: "1px solid #fff" }}>
+                    <Col md={4} style={{ borderRight: "1px solid #8f8f8f", backgroundColor: "#1e1f21" }}>
                         <Row>
-                            <Col md={6}>
-                                <Form.Label style={{ fontWeight: "bold" }}><h3>Room</h3></Form.Label>
-                                <Form.Control size="lg" type="text" placeholder="ROOM CODE" value={room} readOnly />
-                                <span style={{ color: "#70dc70", fontSize: "14px" }}>share this code with your friends!</span>
-                                <br /><br /><Button variant="danger">Leave</Button>
+                            <Col sm={12} className="d-grid">
+                                <Button variant="danger" className="mt-3 btn-sm" onClick={() => history.push("/")}>LEAVE</Button><br />
                             </Col>
-                            <Col md={6}>
+                        </Row>
+                        <Row>
+                            <Col xs={6}>
+                                <Form.Label style={{ fontWeight: "bold" }}><h3>Room</h3></Form.Label>
+                                <ListGroup.Item style={{ backgroundColor: "#282c34", color: "#fff", letterSpacing: "4px" }}>{room}</ListGroup.Item>
+                                <span style={{ color: "#70dc70", fontSize: "14px" }}>share this code with your friends!</span>
+                            </Col>
+                            <Col xs={6}>
                                 <Form.Label style={{ fontWeight: "bold" }}><h3>Users</h3></Form.Label>
 
                                 {state.users !== null &&
@@ -401,7 +407,7 @@ const Room = () => {
                                     <ListGroup variant="flush">
                                         {state.users.map((user, index) => (
                                             (index == 0 ?
-                                                <ListGroup.Item ><span style={{ color: "red", fontWeight: "bold" }}>{user.username}{' '}</span><span style={{ color: "gray", float: "right" }}>(host)</span></ListGroup.Item>
+                                                <ListGroup.Item style={{ backgroundColor: "#282c34" }}><span style={{ color: "red", fontWeight: "bold" }}>{user.username}{' '}</span><span style={{ color: "gray", float: "right" }}>(host)</span></ListGroup.Item>
                                                 :
                                                 <ListGroup.Item><>{user.username}{' '}</></ListGroup.Item>
                                             )
@@ -412,30 +418,34 @@ const Room = () => {
                         </Row>
                         <br />
                         <Row>
-                            <h3>Queue <span className="text-muted">{playing ? '(playing)' : '(paused)'}</span></h3>
-                            {state.queue.length === 0 ?
-                                <p>There are no tracks in the queue</p>
-                                :
-                                stateRef.current.queue.map((track, index) => (
-                                    (index === 0 ?
-                                        <p key={index} style={{ color: "#70dc70", fontWeight: "bold" }}>{track.name}</p>
+                            <Col sm={12} className="d-grid">
+                                <h3>Queue <span className="text-muted">{playing ? '(playing)' : '(paused)'}</span></h3>
+                                <ListGroup className="queue-list">
+                                    {state.queue.length === 0 ?
+                                        <ListGroup.Item className="light-text" style={{ backgroundColor: "#282c34" }}>There are no tracks in the queue</ListGroup.Item>
                                         :
-                                        <p key={index}>{track.name}</p>
-                                    )
-                                ))
-                            }
+                                        stateRef.current.queue.map((track, index) => (
+                                            (index === 0 ?
+                                                <ListGroup.Item key={index} style={{ color: "#70dc70", fontWeight: "bold", backgroundColor: "#282c34" }}>{track.name}</ListGroup.Item>
+                                                :
+                                                <ListGroup.Item key={index} className="light-text" style={{ backgroundColor: "#282c34" }}>{track.name}</ListGroup.Item>
+                                            )
+                                        ))
+                                    }
+                                </ListGroup>
+                            </Col>
                         </Row>
 
                     </Col>
                     <Col md={8}>
                         <Row >
                             <Row className="mt-4 mb-4">
-                                <Col >
+                                <Col xl={7} lg={5} sm={12} >
                                     {/* <FontAwesomeIcon icon={faSearch} style={{ color: "white" }} /> */}
                                     <Form.Control name="tracksearch" type="search" placeholder="Search" ref={trackSearch} onChange={searchForTrack} />
                                 </Col>
                                 <Col style={{ float: "right" }}>
-                                    <div key={`inline-checkbox`} className="mb-3" style={{ float: "right" }}>
+                                    <div key={`inline-checkbox`} className="mt-3" style={{ float: "right" }}>
                                         <Form.Check
                                             inline
                                             checked="checked"
@@ -467,12 +477,17 @@ const Room = () => {
                             <Row>
                                 <ul className="search-results">
                                     {state.searchResults.length > 0 &&
-                                        <ListGroup>
+                                        <ListGroup style={{ marginBottom: "80px" }}>
                                             {
                                                 state.searchResults.map((track, index) => (
-                                                    <ListGroup.Item key={index} className="search-results-track" onClick={() => queueAdd(track.uri)}>
-                                                        <img src={track.album.images[2].url} style={{ marginRight: "12px" }} />
-                                                        <span className="ml-3 pl-3 pr-3 mr-3">{track.artists[0].name + ' - ' + track.name}</span>
+                                                    <ListGroup.Item key={index} className="search-results-track" style={{ backgroundColor: "#282c34", marginTop: "12px" }} onClick={() => queueAdd(track.uri)}>
+                                                        <img src={track.album.images[2].url} style={{ marginRight: "12px", float: "left" }} />
+                                                        <FontAwesomeIcon icon={faPlusCircle} size="2x" style={{ color: "#70dc70", float: "right", marginTop: "16px", cursor: "pointer" }} />
+
+                                                        <div className="align-middle" >
+                                                            <span className="ml-1 pl-4 pr-3 mr-3 light-text">{track.name}</span><br />
+                                                            <span className="ml-4 pl-4 pr-3 mr-3" style={{ color: "#8f8f8f" }}>{track.artists[0].name}</span>
+                                                        </div>
                                                     </ListGroup.Item>
                                                 ))}
                                         </ListGroup>
@@ -482,17 +497,13 @@ const Room = () => {
                         </Row>
                     </Col>
                 </Row>
-                <Navbar fixed="bottom" expand="lg" variant="light" bg="light" className="justify-content-center text-center m-auto align-items-center">
-                    {appContext.state.hosting ?
-                        <>
-                            <FontAwesomeIcon disabled icon={playing ? faPauseCircle : faPlayCircle} size="3x" style={{ color: "black", marginRight: "20px", cursor: "pointer" }} onClick={pauseToggle} />
-                            <FontAwesomeIcon icon={faStepForward} size="lg" style={{ color: "black", cursor: "pointer" }} onClick={nextTrack} />
-                            {/* <ProgressBar now="90" label="2:46" /> */}
-                        </>
-                        :
-                        <span></span>
-                    }
-                </Navbar>
+                {appContext.state.hosting &&
+                    <Navbar fixed="bottom" expand="lg" variant="dark" style={{ backgroundColor: "#121212" }} className="justify-content-center text-center m-auto align-items-center">
+                        <FontAwesomeIcon disabled icon={playing ? faPauseCircle : faPlayCircle} size="3x" style={{ color: "white", marginRight: "20px", cursor: "pointer" }} onClick={pauseToggle} />
+                        <FontAwesomeIcon icon={faStepForward} size="lg" style={{ color: "white", cursor: "pointer" }} onClick={nextTrack} />
+                        {/* <ProgressBar now="90" label="2:46" /> */}
+                    </Navbar>
+                }
                 <script src="https://sdk.scdn.co/spotify-player.js"></script>
             </Container>
         </SocketContext.Provider>

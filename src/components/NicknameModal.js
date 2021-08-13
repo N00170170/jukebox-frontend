@@ -1,19 +1,22 @@
-import '../App.css';
 
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Button, Card } from 'react-bootstrap';
+import { Modal, Form, Button, Spinner, CloseButton } from 'react-bootstrap';
 import { Redirect, useHistory } from 'react-router-dom';
 import { AppContext } from '../App';
 import base64url from "base64url";
 import crypto from "crypto-browserify";
+import '../App.css';
+
 
 const NicknameModal = (props) => {
 
     const appContext = React.useContext(AppContext);
 
     let history = useHistory();
-    
+
     const [authToken, setAuthToken] = React.useState(null);
+    const [authenticating, setAuthenticating] = React.useState(false);
+
 
     const handleChange = (e) => {
         const target = e.target;
@@ -26,6 +29,8 @@ const NicknameModal = (props) => {
     }
 
     const authSpotify = () => {
+        setAuthenticating(true);
+
         // generate code verifier
         const code_verifier = base64url(crypto.pseudoRandomBytes(32)); //creates random 43 char long string
 
@@ -47,6 +52,7 @@ const NicknameModal = (props) => {
     //listen for change in storage - when auth code gets added to storage by SpotifyCallback
     window.addEventListener("storage", () => {
         if (localStorage.getItem("spotify_auth_code")) {
+            setAuthenticating(false);
             setAuthToken(localStorage.getItem("spotify_auth_code"));
         }
     });
@@ -89,8 +95,8 @@ const NicknameModal = (props) => {
 
     return (
         <>
-            <Modal show={props.show} onHide={props.handleClose} className="justify-content-center text-center m-auto align-items-center">
-                <Modal.Header closeButton>
+            <Modal show={props.show} onHide={props.handleClose} className="justify-content-center text-center m-auto align-items-center" centered>
+                <Modal.Header>
                     <Modal.Title>
                         {appContext.state.hosting ?
                             <>Create Room</>
@@ -100,14 +106,17 @@ const NicknameModal = (props) => {
                             </>
                         }
                     </Modal.Title>
+                    <CloseButton variant="white" onClick={props.handleClose}/>
+
                 </Modal.Header>
                 <Modal.Body>
                     <p>Please enter your nickname</p>
-                    <Form.Control name="username" type="text" value={appContext.state.username} placeholder="NICKNAME" className="text-center" onChange={handleChange} />
+                    <Form.Control name="username" type="text" value={appContext.state.username} placeholder="nickname" className="text-center" style={{ fontWeight: "bold", fontSize: "18px" }} onChange={handleChange} />
                     <br />
-                    <p>Please authorise your Spotify account</p>
-                    {appContext.state.hosting && <><span className="text-muted" style={{ fontSize: "13px" }}>Premium Spotify is required to host a room</span><br /><br /></>}
-                    <Button variant="success" onClick={authSpotify}>Authorise Spotify</Button><br></br>
+                    <p className="mb-0 pb-0">Please authorise your Spotify account</p>
+                    {appContext.state.hosting && <><span className="text-muted" style={{ fontSize: "13px", paddingBottom: "0px" }}>(Spotify Premium is required to host a room)</span><br /></>}
+                    <br />
+                    <Button variant="success" onClick={authSpotify}>{authenticating ? <Spinner animation="border" size="sm" /> : (authToken ? 'Spotify Authorised' : 'Authorise Spotify')}</Button><br></br>
                     <br />
                     <br />
                     <div className="d-grid gap-2">
